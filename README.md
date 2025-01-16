@@ -33,7 +33,9 @@ Your grade is determined by the actual profit you earn in the test case. After t
 
 ### Submission
 
-Your submission should be a single `LiquidationOperator.sol` file **that contains at most one import statement `import "hardhat/console.sol";`**. If you plan to include libraries or interfaces from other npm packages, please manually add them to your contract file so that we have a unified environment for grading. 
+Your submission should be a single `LiquidationOperator.sol` file **that contains at most one import statement `import "hardhat/console.sol";`**. If you plan to include libraries or interfaces from other npm packages, please manually add them to your contract file so that we have a unified environment for grading.
+
+Please also include a 3 minute demo video explaining your approach, solution and run your code.
 
 ## Background
 
