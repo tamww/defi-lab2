@@ -292,7 +292,6 @@ contract LiquidationOperator is IUniswapV2Callee {
         bytes calldata
     ) external override {
         uint112 repay1=119011111111;
-       
        // these 3 lines I need when I comment the 2 liquidation steps part and get back to 1 step
        /* (uint112 w_btc, uint112 w_eth, ) = IUniswapV2Pair(msg.sender)
             .getReserves();    // this is just to check that uniswap has enough liquidity, ie. safety check
