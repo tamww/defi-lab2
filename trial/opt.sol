@@ -106,9 +106,9 @@ interface IUniswapV2Callee {
     ) external;
 }
 
-// https://github.com/Uniswap/v2-core/blob/master/contracts/interfaces/ISushiSwapV2Factory.sol
+// https://github.com/Uniswap/v2-core/blob/master/contracts/interfaces/IUniswapV2Factory.sol
 // https://docs.uniswap.org/protocol/V2/reference/smart-contracts/factory
-interface ISushiSwapV2Factory {
+interface IUniswapV2Factory {
     // Returns the address of the pair for tokenA and tokenB, if it has been created, else address(0).
     function getPair(address tokenA, address tokenB)
         external
@@ -116,9 +116,9 @@ interface ISushiSwapV2Factory {
         returns (address pair);
 }
 
-// https://github.com/Uniswap/v2-core/blob/master/contracts/interfaces/ISushiSwapV2Pair.sol
+// https://github.com/Uniswap/v2-core/blob/master/contracts/interfaces/IUniswapV2Pair.sol
 // https://docs.uniswap.org/protocol/V2/reference/smart-contracts/pair
-interface ISushiSwapV2Pair {
+interface IUniswapV2Pair {
     /**
      * Swaps tokens. For regular swaps, data.length must be 0.
      * Also see [Flash Swaps](https://docs.uniswap.org/protocol/V2/concepts/core-concepts/flash-swaps).
@@ -175,7 +175,7 @@ interface IProtocolDataProvider {
         );
 }
 
-interface ISushiSwapv2Router {
+interface IUniswapV2Router {
     function swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -207,7 +207,7 @@ contract LiquidationOperator is IUniswapV2Callee {
     // uint256 LOAN_TO_COVER = 2916378221684; //    24.11903787514428899 ETH
     // uint256 LOAN_TO_COVER = 1458189110842; //    42.641660897358833962 ETH 50%
     uint256 LOAN_TO_COVER = 2916378221684;
-    uint256 constant LIQUIDATION_CLOSTING_F = 9250;
+    uint256 constant LIQUIDATION_CLOSTING_F = 5800;
 
 
     // TODO: define constants used in the contract including ERC-20 tokens, Uniswap Pairs, Aave lending pools, etc. */
@@ -223,22 +223,20 @@ contract LiquidationOperator is IUniswapV2Callee {
     address constant LENDING_POOL = 0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9;
 
     // swap contrct
-    // ISushiSwapv2Router router = ISushiSwapv2Router(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D); 
+    IUniswapV2Router router = IUniswapV2Router(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D); 
     IERC20 constant WBTC = IERC20(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
     IERC20 constant USDT = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7);
     IWETH constant WETH = IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2); 
     IERC20 constant DAI = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     
-    ISushiSwapv2Router router = ISushiSwapv2Router(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
-    ISushiSwapV2Factory constant factory = ISushiSwapV2Factory(0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac);
+
     // AVAE lending protocol
-    
     ILendingPool lendingPool = ILendingPool(LENDING_POOL);
     IProtocolDataProvider dataProvider = IProtocolDataProvider(0x057835Ad21a177dbdd3090bB1CAE03EaCF78Fc6d);
 
     // Uniswap Pairs
-    // ISushiSwapV2Factory constant factory = ISushiSwapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f);
-    ISushiSwapV2Pair pair_WETH_USDT = ISushiSwapV2Pair(factory.getPair(address(WETH), address(USDT)));
+    IUniswapV2Factory constant factory = IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f);
+    IUniswapV2Pair pair_WETH_USDT = IUniswapV2Pair(factory.getPair(address(WETH), address(USDT)));
 
     // price oracle
     IPriceOracleGetter constant PRICE_ORACLE = IPriceOracleGetter(0xA50ba011c48153De246E5192C8f9258A2ba79Ca9);
@@ -402,10 +400,10 @@ contract LiquidationOperator is IUniswapV2Callee {
         console.log("Total Profit (WBTC): ", balance_wbtc);
 
         // conver profit to ETH and withdraw
-        address[] memory swapPath = new address[](2);
+        address[] memory swapPath = new address[](3);
         swapPath[0] = address(WBTC);
-        // swapPath[1] = address(DAI);
-        swapPath[1] = address(WETH);
+        swapPath[1] = address(DAI);
+        swapPath[2] = address(WETH);
         router.swapExactTokensForETH(balance_wbtc, 0, swapPath, msg.sender, BLOCK_NUM);
         uint256 balanceWETH = WETH.balanceOf(address(this)); 
         WETH.withdraw(balanceWETH);
@@ -427,7 +425,7 @@ contract LiquidationOperator is IUniswapV2Callee {
         // 2.0. security checks and initializing variables
         //    *** Your code here ***
         // call uniswapv2factory to getpair 
-        address pair = ISushiSwapV2Factory(factory).getPair(address(WETH), address(USDT));
+        address pair = IUniswapV2Factory(factory).getPair(address(WETH), address(USDT));
         require(msg.sender == pair, "invalid pair");
 
         // approve the pool to use USDT and WETH
@@ -439,7 +437,7 @@ contract LiquidationOperator is IUniswapV2Callee {
         console.log("- WBTC balance WBTC contract:", WBTC.balanceOf(address(WBTC)));
         console.log("- WBTC balance this acc: ", WBTC.balanceOf(address(this)));
         // ensure we have enough tokens to do the liquidity
-        // (uint112 pairETH, uint112 pairUSDT, ) = ISushiSwapV2Pair(msg.sender).getReserves();
+        // (uint112 pairETH, uint112 pairUSDT, ) = IUniswapV2Pair(msg.sender).getReserves();
         // do the liquidation call and repay using the amt1
         // _getAssetPrice();
 
@@ -468,11 +466,11 @@ contract LiquidationOperator is IUniswapV2Callee {
         WBTC.approve(address(router), type(uint).max);
         DAI.approve(address(router), type(uint).max);
 
-        address[] memory repayPath = new address[](2);
+        address[] memory repayPath = new address[](3);
         repayPath[0] = address(WBTC);
-        // repayPath[1] = address(DAI);
-        repayPath[1] = address(WETH);
-        (uint112 pairETH, uint112 pairUSDT, ) = ISushiSwapV2Pair(msg.sender).getReserves();  
+        repayPath[1] = address(DAI);
+        repayPath[2] = address(WETH);
+        (uint112 pairETH, uint112 pairUSDT, ) = IUniswapV2Pair(msg.sender).getReserves();  
         // as we are using WETH to get USDT, we cal how much WETH to repay 
         // how many ETH needed to repay amount1 of USDT
         uint256 amountRepay = getAmountIn(amount1, pairETH, pairUSDT);

@@ -34,6 +34,33 @@ interface IPriceOracleGetter {
     function getAssetPrice(address _asset) external view returns (uint256);
 }
 
+interface IUniswapV2Router {
+    function swapExactTokensForTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
+
+    function swapTokensForExactTokens(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
+
+    function swapExactTokensForETH(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
+}
+
+
 // ----------------------OPTIMIZED CONTRACT------------------------------
 contract LiquidationOperator is IUniswapV2Callee {
     address constant TARGET_USER = 0x59CE4a2AC5bC3f5F225439B2993b86B42f6d3e9F;
@@ -105,9 +132,23 @@ contract LiquidationOperator is IUniswapV2Callee {
 
     function _executeLiquidation(uint256 debtToCover) internal {
         uint256 healthFactor;
+            USDT.approve(address(lendingPool), type(uint).max);
+            WBTC.approve(address(lendingPool), type(uint).max);
         do {
+            console.log("1");
+            // (uint112 reserveWETH, uint112 reserveUSDT,) = IUniswapV2Pair(_getPair()).getReserves();
+            // uint256 maxUSDT = (reserveUSDT * 997) / 1000; // 考虑0.3%手续费后的最大可借量
+            // debtToCover = _calculateOptimalDebt(maxUSDT);
             lendingPool.liquidationCall(address(WBTC), address(USDT), TARGET_USER, debtToCover, false);
+            console.log("2");
             (,,,,,healthFactor) = lendingPool.getUserAccountData(TARGET_USER);
+            (uint112 reserveWETH, uint112 reserveUSDT,) = IUniswapV2Pair(_getPair()).getReserves();
+            uint256 maxUSDT = (reserveUSDT * 997) / 1000; // 考虑0.3%手续费后的最大可借量
+            debtToCover = _calculateOptimalDebt(maxUSDT);
+            lendingPool.liquidationCall(address(WBTC), address(USDT), TARGET_USER, debtToCover, false);
+
+
+            console.log(healthFactor);
         } while (healthFactor < 1e18);
     }
 
